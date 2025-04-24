@@ -1,0 +1,91 @@
+    DEVICE ZXSPECTRUM48
+
+GET_MESSAGE_ADDR    EQU #A666
+IS_GAMEOVER         EQU #9CAB
+SCORES              EQU #9CB1
+
+TARGET_SCORE    EQU 65282    
+
+    ORG 27648
+BEGIN:
+    INCBIN "CM2.C"
+END:
+
+    ORG #8BC0
+PATCH:
+    JP HANDLE_ENDING
+
+    ORG #A674
+    LD HL, NEW_STRING_TABLE
+
+    ORG #87B6
+    JP CHECK_SCORES
+    NOP
+RETURN_TO_MAIN_LOOP:
+
+    ORG #8075
+PATCH_START_GAME:
+    JP ZERO_ROBOT_COUTER
+
+; NEW CODE
+
+    ORG #FF58
+HANDLE_ENDING:
+    LD HL, KILLED_ROBOTS
+    LD A, (HL)
+    INC A
+    LD (HL), A
+    CP 6
+    JR NZ, _RETURN2
+    LD HL, SCORES
+    XOR A
+    LD (HL), A
+    INC HL
+    DEC A
+    LD (HL), A
+
+_RETURN2:
+    pop     de
+    pop     hl
+    push    hl
+    JP PATCH+3
+
+CHECK_SCORES:
+    LD A, H
+    CP #FF
+    JR NZ, _RETURN
+    LD A, L
+    SUB 2
+    JR C, _RETURN
+
+    ld a, 6
+    CALL GET_MESSAGE_ADDR
+    CALL #87e3
+    LD HL, IS_GAMEOVER
+    LD A, 1
+    LD (HL), A
+_RETURN:
+    ld      d, 16h
+    ld      e, 16h
+    JP RETURN_TO_MAIN_LOOP
+
+ZERO_ROBOT_COUTER:
+    LD HL, KILLED_ROBOTS
+    LD (HL), A
+    call    #867D
+    JP PATCH_START_GAME + 3
+
+KILLED_ROBOTS DB 0
+NEW_STRING_TABLE:
+    DW 0xA82D
+    DW 0xA860
+    DW 0xA8C1
+    DW 0xA942
+    DW 0xA94D
+    DW 0x9C20
+    DW CONGRATULATIONS
+
+CONGRATULATIONS:
+    DB '                CONGRATULATIONS! YOU ARE FREE!    ', #FF
+       
+    SAVETAP "SHORT_2_fix.TAP", CODE, "CM3", BEGIN, END-BEGIN
